@@ -1,0 +1,150 @@
+services:
+
+  mongodb1:
+    image: mongo:7
+    container_name: mongodb1
+    hostname: mongodb1
+    restart: unless-stopped
+    command: >
+      mongod
+      --replSet rs0
+      --bind_ip_all
+      --keyFile /etc/mongo-keyfile/keyfile
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb1_data:/data/db
+      - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
+    networks:
+      - backend
+
+  mongodb2:
+    image: mongo:7
+    container_name: mongodb2
+    hostname: mongodb2
+    restart: unless-stopped
+    command: >
+      mongod
+      --replSet rs0
+      --bind_ip_all
+      --keyFile /etc/mongo-keyfile/keyfile
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb2_data:/data/db
+      - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
+    networks:
+      - backend
+
+  mongodb3:
+    image: mongo:7
+    container_name: mongodb3
+    hostname: mongodb3
+    restart: unless-stopped
+    command: >
+      mongod
+      --replSet rs0
+      --bind_ip_all
+      --keyFile /etc/mongo-keyfile/keyfile
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb3_data:/data/db
+      - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
+    networks:
+      - backend
+
+  mongodb-setup:
+    image: mongo:7
+    container_name: mongodb-setup
+    depends_on:
+      - mongodb1
+      - mongodb2
+      - mongodb3
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo 'Waiting for MongoDB startup...' &&
+      sleep 25 &&
+
+      mongosh --host mongodb1:27017 \
+      -u admin \
+      -p password \
+      --authenticationDatabase admin \
+      --eval '
+      rs.initiate({
+        _id: \"rs0\",
+        members: [
+          { _id: 0, host: \"mongodb1:27017\" },
+          { _id: 1, host: \"mongodb2:27017\" },
+          { _id: 2, host: \"mongodb3:27017\" }
+        ]
+      });
+      ' &&
+      sleep 10 &&
+      mongosh --host mongodb1:27017 \
+      -u admin \
+      -p password \
+      --authenticationDatabase admin \
+      --eval '
+      rs.status()
+      ' &&
+      echo 'Replica set initialized'
+      "
+    networks:
+      - backend
+
+  redis-server:
+    image: redis:7
+    container_name: redis-server
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+  websocket-server:
+    build:
+      context: ./node-websocket-server
+    container_name: websocket-server
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      REDIS_HOST: redis-server
+      REDIS_PORT: 6379
+    depends_on:
+      - mongodb-setup
+      - redis-server
+    networks:
+      - backend
+
+  websocket-client:
+    build:
+      context: ./node-websocket-client
+    container_name: websocket-client
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      WS_SERVER_URL: ws://websocket-server:4000
+    depends_on:
+      - websocket-server
+    networks:
+      - backend
+
+volumes:
+    mongodb1_data:
+    mongodb2_data:
+    mongodb3_data:
+    redis_data:
+
+networks:
+    backend:
+      driver: bridge

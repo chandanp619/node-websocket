@@ -1,0 +1,122 @@
+
+    <canvas id="product-chart" style="width:800px; margin:0 auto"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" integrity="sha512-Y51n9mtKTVBh3Jbx5pZSJNDDMyY+yGe77DGtBPzRlgsf/YLCh13kSZ3JmfHGzYFCmOndraf0sQgfM654b7dJ3w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+            var chartData = JSON.parse(<%- JSON.stringify(chartData) %>);
+            //console.log(chartData);
+            var labels = [];
+            const ctx = document.getElementById('product-chart').getContext('2d');
+            var chartGradient = ctx.createLinearGradient(0, 0, 0, 400);
+                chartGradient.addColorStop(0, 'rgba(151, 27, 47, 0.2)'); // Axis Bank maroon theme hint
+                chartGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                /*
+                var config = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Product Data',
+                        data: [],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            };
+                */
+            var config = {
+            type: 'line', 
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Stock Price (INR)',
+                    data: [],
+                    borderColor: '#971B2F', // Line color
+                    borderWidth: 2,
+                    pointBackgroundColor: '#971B2F',
+                    pointRadius: 2,
+                    pointHoverRadius: 3,
+                    fill: true, // Fill the area beneath the line
+                    backgroundColor: chartGradient,
+                    tension: 0.2 // Smooths out the line slightly
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return ` ₹${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false // Cleans up layout by removing vertical lines
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: '#eaeaea'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Price (₹)'
+                        },
+                        ticks: {
+                            // Format the Y-axis numbers to look like currency
+                            callback: function(value) {
+                                return '₹' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+            // var ctx = document.getElementById('product-chart').getContext('2d');
+            var myChart = new Chart(ctx, config);
+            for(var i=0;i<chartData.length;i++){
+                //console.log(chartData[i]);
+                config.data.labels.push(new Date(chartData[i]['time']).toLocaleTimeString());
+                config.data.datasets[0].data.push(chartData[i]['price']);
+            }
+            //console.log(config.data.datasets[0].data);
+            myChart.update();
+
+            setInterval(async() => {
+                let data = await fetch('http://localhost:5000/chart')
+                .then(response => response.json())
+                .then(data => {
+                    chartData = JSON.parse(data.chartData); //data.data.chartData;
+                    myChart.data.datasets[0].data = [];
+                    config.data.labels = [];
+                    for(var i=0;i<chartData.length;i++){
+                        //console.log(chartData[i]);
+                        config.data.labels.push(new Date(chartData[i]['time']).toLocaleTimeString());
+                        config.data.datasets[0].data.push(chartData[i]['price']);
+                    }
+                    //console.log(config.data.datasets[0].data);
+                    myChart.update();
+                });
+            }, 5000);
+    </script>
