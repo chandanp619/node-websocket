@@ -1,4 +1,4 @@
-#  Welcome to NodeJS + WebSocket + MongoDB Demo
+#  Welcome to NodeJS + WebSocket + MongoDB + Redis + Docker demo
 
 To Run this application container, you need Docker installed in your system.
 
