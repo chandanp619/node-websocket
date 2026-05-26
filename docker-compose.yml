@@ -16,7 +16,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongodb1_data:/data/db
+      - ./data/mongodb1_data:/data/db
       - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
     networks:
       - backend
@@ -34,7 +34,7 @@ services:
     ports:
       - "27018:27017"
     volumes:
-      - mongodb2_data:/data/db
+      - ./data/mongodb2_data:/data/db
       - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
     networks:
       - backend
@@ -52,7 +52,7 @@ services:
     ports:
       - "27019:27017"
     volumes:
-      - mongodb3_data:/data/db
+      - ./data/mongodb3_data:/data/db
       - ./mongodb-keyfile:/etc/mongo-keyfile/keyfile:ro
     networks:
       - backend
@@ -105,7 +105,7 @@ services:
       - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
-      - redis_data:/data
+      - ./data/redis_data:/data
     networks:
       - backend
 
